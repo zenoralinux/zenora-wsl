@@ -1,0 +1,58 @@
+name: Build Zenora WSL exe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      DISTRO_NAME: Zenora
+      CONFIGURATION: Release
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.3.1
+
+      - name: Download and prepare DistroLauncher
+        shell: pwsh
+        run: |
+          git clone https://github.com/zenoralinux/WSL-DistroLauncher.git DistroLauncher
+          New-Item -ItemType Directory -Force -Path "DistroLauncher\DistroLauncher\x64"
+
+      - name: Patch toolset and SDK version
+        shell: pwsh
+        run: |
+          $projects = @(
+            "DistroLauncher\DistroLauncher\DistroLauncher.vcxproj"          )
+          foreach ($proj in $projects) {
+            (Get-Content $proj) -replace 'v141', 'v143' -replace '10\.0\.16299\.0', '10.0.19041.0' | Set-Content $proj
+          }
+
+
+      - name: Build the DistroLauncher solution
+        shell: cmd
+        run: |
+          cd DistroLauncher\DistroLauncher
+          msbuild DistroLauncher.vcxproj /p:Configuration=Release /p:Platform=x64
+          dir x64\Release
+
+      - name: Create destination directory for launcher.exe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "DistroLauncher\DistroLauncher\x64\Release\DistroLauncher-Appx"
+
+      - name: Copy launcher.exe to Appx folder
+        shell: pwsh
+        run: |
+          Copy-Item "DistroLauncher\DistroLauncher\x64\Release\launcher.exe" "DistroLauncher\DistroLauncher\x64\Release\DistroLauncher-Appx\launcher.exe" -Force
+
+      - name: Upload launcher.exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-exe
+          path: DistroLauncher\DistroLauncher\x64\Release\DistroLauncher-Appx\launcher.exe
