@@ -1,10 +1,12 @@
-name: Download and Publish Latest Release
+name: Download and Publish Zenora Release
 
 on:
   schedule:
-    # هر روز در ساعت 12 چک کند
     - cron: '0 12 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   download-and-publish:
@@ -24,52 +26,72 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests pygithub
         
-    - name: Download latest release assets
+    - name: Download zenora-release.zip
+      id: download
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         import os
         from github import Github
         
-        # اتصال به GitHub
         g = Github(os.getenv('GITHUB_TOKEN'))
         repo = g.get_repo("zenoralinux/wsl-zenora-rootfs")
-        
-        # دریافت آخرین ریلیز
         latest_release = repo.get_latest_release()
-        print(f"Latest release: {latest_release.tag_name}")
         
-        # ایجاد پوشه برای دانلود
-        os.makedirs("release_assets", exist_ok=True)
-        
-        # دانلود تمام assets
+        # پیدا کردن فایل zenora-release.zip
+        target_asset = None
         for asset in latest_release.get_assets():
-          print(f"Downloading {asset.name}...")
-          download_url = asset.browser_download_url
-          os.system(f"wget -q {download_url} -P release_assets/")
-          print(f"Downloaded {asset.name}")
+          if asset.name == "zenora-release.zip":
+            target_asset = asset
+            break
+            
+        if not target_asset:
+          raise Exception("zenora-release.zip not found in latest release")
           
-        # دانلود چنج‌لاگ اگر وجود دارد
-        try:
-          changelog_content = repo.get_contents("CHANGELOG.md")
-          with open("release_assets/CHANGELOG.md", "wb") as f:
-            f.write(changelog_content.decoded_content)
-          print("Downloaded CHANGELOG.md")
-        except:
-          print("CHANGELOG.md not found")
+        # دانلود فایل
+        os.makedirs("downloads", exist_ok=True)
+        download_url = target_asset.browser_download_url
+        os.system(f"wget -q {download_url} -O downloads/zenora-release.zip")
+        
+        # ذخیره اطلاعات برای مراحل بعدی
+        print(f"::set-output name=release_tag::{latest_release.tag_name}")
+        print(f"::set-output name=release_name::{latest_release.title}")
       shell: python
       
-    - name: Publish artifacts
+    - name: Upload as workflow artifact
       uses: actions/upload-artifact@v4
       with:
-        name: zenora-release-assets
-        path: release_assets/
+        name: zenora-release
+        path: downloads/zenora-release.zip
         retention-days: 5
+        
+    - name: Create new release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.download.outputs.release_tag }}
+        release_name: ${{ steps.download.outputs.release_name }} (Mirror)
+        body: "Mirrored release of zenora-release.zip from original repository"
+        draft: false
+        prerelease: false
+        
+    - name: Upload to new release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./downloads/zenora-release.zip
+        asset_name: zenora-release.zip
+        asset_content_type: application/zip
         
     - name: Create summary
       run: |
-        echo "## Latest Zenora WSL RootFS Release Assets" >> $GITHUB_STEP_SUMMARY
-        echo "Downloaded assets from release ${{ github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "## Zenora Release Mirror" >> $GITHUB_STEP_SUMMARY
+        echo "Downloaded and republished zenora-release.zip" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Files:" >> $GITHUB_STEP_SUMMARY
-        ls -la release_assets/ >> $GITHUB_STEP_SUMMARY
+        echo "- Original Release Tag: ${{ steps.download.outputs.release_tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Original Release Name: ${{ steps.download.outputs.release_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- File Size: $(du -h downloads/zenora-release.zip | cut -f1)" >> $GITHUB_STEP_SUMMARY
