@@ -72,7 +72,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.download.outputs.release_tag }}
-        release_name: ${{ steps.download.outputs.release_name }} (Mirror)
+        release_name: ${{ steps.download.outputs.release_name }} 
         body: "Mirrored release of zenora-release.zip from original repository"
         draft: false
         prerelease: false
