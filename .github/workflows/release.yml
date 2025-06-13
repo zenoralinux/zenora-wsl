@@ -60,7 +60,7 @@ jobs:
       shell: python
       
     - name: Publish artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: zenora-release-assets
         path: release_assets/
