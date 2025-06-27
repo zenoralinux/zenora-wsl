@@ -10,7 +10,7 @@ Please read this readme carefully before using this RootFS.
 
 1. **Please read this README thoroughly before using any RootFS archives provided by this repository.**
 
-2. Arch Linux on WSL installation is currently supported by official. Before you start, it is recommended to visit [official guide on Arch Linux Wiki](https://wiki.archlinux.org/title/Install_Arch_Linux_on_WSL).
+2. Arch Linux on WSL installation is currently supported by official. Before you start, it is recommended to visit [official guide on Arch Linux Wiki](https://zenoralinux.ir/wiki).
 
 3. Although supported officially, there might be some problems which is not reproducible in non-WSL Arch Linux installation. Therefore, you should be familiar with normal Arch Linux installations.
 
@@ -18,7 +18,7 @@ Please read this readme carefully before using this RootFS.
 
 ## Getting the RootFS
 
-Download the latest [archlinux.wsl](https://github.com/AzureZeng/wsl-arch-rootfs/releases/latest) in the Repository Releases.
+Download the latest [archlinux.wsl](https://github.com/zenoralinux/zenora-wsl/releases/tag/v1.0.0) in the Repository Releases.
 
 ## Installation
 
@@ -47,10 +47,6 @@ Then execute OOBE script immediately:
 ```bash
 $ /usr/lib/wsl/oobe.sh
 ```
-
-## Contents in this RootFS
-
-For detailed auto-build process, please visit [build-rootfs.yml](https://github.com/AzureZeng/wsl-arch-rootfs/blob/main/.github/workflows/build-rootfs.yml).
 
 Summary:
 
